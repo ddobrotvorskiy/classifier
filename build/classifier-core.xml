@@ -1,0 +1,89 @@
+<target name="compile.core" depends="" description="compile core" unless="compile.core.done">
+  <mkdir dir="${classifier.basedir}/classes/core/classes"/>
+  <javac srcdir="${classifier.basedir}/java"
+	 destdir="${classifier.basedir}/classes/core/classes"
+         debug="on" nowarn="on">
+    <compilerarg line="-encoding KOI8-R"/>
+    <classpath>
+      <pathelement location="${classifier.basedir}/lib/batik/batik-awt-util.jar"/>
+      <pathelement location="${classifier.basedir}/lib/batik/batik-svg-dom.jar"/>
+      <pathelement location="${classifier.basedir}/lib/batik/batik-dom.jar"/>
+      <pathelement location="${classifier.basedir}/lib/batik/batik-svggen.jar"/>
+      <pathelement location="${classifier.basedir}/lib/batik/batik-util.jar"/>
+    </classpath>
+
+  </javac>
+
+  <exec executable="rmic" dir="${classifier.basedir}/classes/core/classes" failonerror="true">
+    <arg value="ru.classifier.server.rmi.RemoteManagerImpl"/>
+    <arg value="ru.classifier.server.rmi.ProcessorImpl"/>
+    <arg value="ru.classifier.server.rmi.ProcessorImpl2"/>
+  </exec>
+
+  <jar destfile="${classifier.basedir}/classes/core/core.jar"
+       basedir="${classifier.basedir}/classes/core/classes"/> 
+
+  <property name="compile.core.done" value="true"/>
+</target>
+
+<target name="install.core" depends="" unless="install.core.done">    
+  <mkdir dir="${classifier.basedir}/bin"/>
+  <mkdir dir="${classifier.basedir}/bin/lib"/>
+  <mkdir dir="${classifier.basedir}/bin/lib/batik"/>
+  <mkdir dir="${classifier.basedir}/bin/config"/>
+  <mkdir dir="${classifier.basedir}/bin/logs"/>
+  <copy file="${classifier.basedir}/classes/core/core.jar" todir="${classifier.basedir}/bin/lib/"/>
+  <!--
+  <copy file="${classifier.basedir}/lib/batik/batik-awt-util.jar" todir="${classifier.basedir}/bin/lib/batik/"/>
+  <copy file="${classifier.basedir}/lib/batik/batik-svg-dom.jar" todir="${classifier.basedir}/bin/lib/batik/"/>
+  <copy file="${classifier.basedir}/lib/batik/batik-dom.jar" todir="${classifier.basedir}/bin/lib/batik/"/>
+  <copy file="${classifier.basedir}/lib/batik/batik-svggen.jar" todir="${classifier.basedir}/bin/lib/batik/"/>
+  <copy file="${classifier.basedir}/lib/batik/batik-util.jar" todir="${classifier.basedir}/bin/lib/batik/"/>
+  -->
+  <copy todir="${classifier.basedir}/bin/lib/batik/">
+    <fileset dir="${classifier.basedir}/lib/batik/">
+      <include name="**.jar"/>
+    </fileset>
+  </copy>
+  <copy file="${classifier.basedir}/scripts/classifier.opt.script.client" tofile="${classifier.basedir}/bin/client.sh" />
+  <copy file="${classifier.basedir}/scripts/classifier.opt.script.server" tofile="${classifier.basedir}/bin/server.sh" />
+  <copy file="${classifier.basedir}/scripts/classifier.init.d.script" tofile="${classifier.basedir}/bin/classifier.server" />
+  <copy file="${classifier.basedir}/config/classifier.cfg" todir="${classifier.basedir}/bin/config/" />
+  <copy file="${classifier.basedir}/config/classifier.cfg.example" todir="${classifier.basedir}/bin/config/" />
+  <copy file="${classifier.basedir}/scripts/find-java.sh" todir="${classifier.basedir}/bin/" />
+  <exec executable="chmod" dir="${classifier.basedir}/bin/" failonerror="true">
+    <arg value="+x"></arg>
+    <arg value="find-java.sh"></arg>
+    <arg value="server.sh"></arg>
+    <arg value="client.sh"></arg>
+  </exec>
+  <property name="install.core.done" value="true"/>
+</target>
+
+
+<target name="package.core" depends="compile.core" description="package core" unless="package.core.done">
+  <tar destfile="${classifier.basedir}/classes/classifier-core-${classifier.core.version}.tar.gz" compression="gzip">
+    <tarfileset file="${classifier.basedir}/classes/core/core.jar" prefix="core-lib/" />
+  </tar>
+  <property name="package.core.done" value="true"/>
+</target>
+
+<target name="rpm.core" depends="rpm.prepare, package.core" unless="rpm.core.done">
+  <copy file="${classifier.basedir}/package/classifier-core.spec" todir="${classifier.rpmdir}/SPECS/"/>
+  <copy file="${classifier.basedir}/classes/classifier-core-${classifier.core.version}.tar.gz" todir="${classifier.rpmdir}/SOURCES/"/>
+  <copy file="${classifier.basedir}/scripts/classifier.opt.script.client" todir="${classifier.rpmdir}/SOURCES/" />
+  <copy file="${classifier.basedir}/scripts/classifier.opt.script.server" todir="${classifier.rpmdir}/SOURCES/" />
+  <copy file="${classifier.basedir}/scripts/classifier.init.d.script" todir="${classifier.rpmdir}/SOURCES/" />
+  <copy file="${classifier.basedir}/config/classifier.cfg" todir="${classifier.rpmdir}/SOURCES/" />
+  <copy file="${classifier.basedir}/scripts/find-java.sh" todir="${classifier.rpmdir}/SOURCES/" />
+
+  <exec executable="rpmbuild" dir="${classifier.rpmdir}/SPECS" failonerror="true">
+    <arg value="--define=_topdir ${classifier.rpmdir}"/>
+    <arg value="--define=_tmppath ${classifier.rpmdir}/tmp"/>
+    <arg value="--define=classifier_core_version ${classifier.core.version}"/>
+    <arg value="-ba"/>
+    <arg value="classifier-core.spec"/>
+  </exec>
+
+  <property name="rpm.core.done" value="true"/>
+</target>

@@ -1,0 +1,67 @@
+#!/bin/bash
+
+BASEDIR=./
+CONFIGFILE=$BASEDIR/config/classifier.cfg
+LOGFILE=$BASEDIR/logs/classifier.log
+SERVER_LOG=$LOGFILE.server
+
+[ -x "$BASEDIR/find-java.sh" ] && . "$BASEDIR/find-java.sh"
+
+CP=""
+
+for i in $BASEDIR/lib/*.jar; do
+  CP=$CP:$i
+done
+
+for j in $BASEDIR/lib/batik/*jar; do
+  CP=$CP:$j
+done
+
+
+stop() {
+    # detect what ps we have to use
+    if [ -x /usr/ucb/ps ]; then
+      PRINTPID=`COLUMNS=50000 /usr/ucb/ps -auxwww | grep java | grep ru.classifier.server.Server | awk '{print $2}'`
+    else
+      PRINTPID=`COLUMNS=50000 ps -ef | grep java | grep ru.classifier.server.Server | awk '{print $2}'`
+    fi
+	sleep 1
+    kill $PRINTPID &> /dev/null
+}
+
+
+start(){
+    cd $BASEDIR
+
+    [ -d logs ] || mkdir logs
+
+    if [ -f $SERVER_LOG ]
+    then
+        echo Rotating old log
+        LOG_FILE=$SERVER_LOG.`date +%Y%m%d-%H%M%S`
+        mv -f $SERVER_LOG $LOG_FILE
+        nice nice bzip2 -9 $LOG_FILE &
+    fi
+		if [ -f /etc/sysconfig/clock ]; then
+	    . /etc/sysconfig/clock
+	    export TZ=$TIMEZONE
+	    if [ "$TZ" = "" ]; then
+		    export TZ=$DEFAULT_TIMEZONE
+		  fi
+		fi
+
+    ${JAVA_HOME}/bin/java -classpath "$CP" ru.classifier.server.Server $CONFIGFILE $LOGFILE > $SERVER_LOG 2>&1 &
+}
+
+case $1 in
+        start)
+             start
+            ;;
+        stop)
+            stop
+            ;;
+        *)
+            stop
+            start
+esac
+

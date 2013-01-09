@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<!DOCTYPE project [
+  <!ENTITY classifier-core SYSTEM "./build/classifier-core.xml">  
+]>
+
+<project name="classifier" default="compile">
+  <dirname property="classifier.basedir" file="${ant.file}"/>
+  <property name="classifier.rpmdir" value="${classifier.basedir}/classes/rpm"/>
+
+  <property name="classifier.core.version" value="1.0"/>  
+  
+  &classifier-core;  
+
+  <target name="compile" depends="compile.core" description="compile all"/>
+  
+  <target name="clean" depends="" description="cleanup all" unless="clean.done">
+    <delete dir="${classifier.basedir}/classes"/>
+    <delete dir="${classifier.basedir}/bin"/>
+
+    <property name="clean.done" value="true"/>
+  </target>
+
+  <target name="recompile" depends="clean, compile" description="recompile all"/>
+
+  <target name="package" depends="compile, package.core" description="package all"/>
+
+  <target name="rpm.prepare" description="Build rpm farm" unless="rpm.prepare.done">
+    <delete dir="${classifier.rpmdir}"/>
+    <mkdir dir="${classifier.rpmdir}"/>
+    <mkdir dir="${classifier.rpmdir}/tmp"/>
+    <mkdir dir="${classifier.rpmdir}/RPMS"/>
+    <mkdir dir="${classifier.rpmdir}/RPMS/noarch"/>
+    <mkdir dir="${classifier.rpmdir}/BUILD"/>
+    <mkdir dir="${classifier.rpmdir}/SPECS"/>
+    <mkdir dir="${classifier.rpmdir}/SRPMS"/>
+    <mkdir dir="${classifier.rpmdir}/SOURCES"/>
+
+    <property name="rpm.prepare.done" value="true"/>
+  </target>
+
+  <target name="rpm" depends="clean, package, rpm.prepare, rpm.core" description="Build all rpms">
+    <exec executable="ls">
+      <arg value="-la"/>
+      <arg value="${classifier.rpmdir}/RPMS/noarch/"/>
+    </exec>
+  </target>
+  
+  <target name="install" depends="clean, compile, install.core" description="Install "/>
+
+  <target name="release">
+    <exec executable="./build/release.sh" failonerror="true">
+      <arg value="${classifier.core.version}"/>
+    </exec>
+  </target>
+
+</project>

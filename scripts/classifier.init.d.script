@@ -1,0 +1,35 @@
+#!/bin/sh
+. /etc/rc.status
+
+rc_reset
+
+case "$1" in
+    start)
+        echo -n "Starting Classifier Server "
+
+        /opt/classifier/server.sh start
+
+        rc_status -v
+        ;;
+    stop)
+        echo -n "Shutting down Classifier Server "
+
+        /opt/classifier/server.sh stop
+
+        rc_status -v
+        ;;
+    restart)
+        ## Stop the service and regardless of whether it was
+        ## running or not, start it again.
+        $0 stop
+        sleep 1
+        $0 start
+
+        # Remember status and be quiet
+        rc_status
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart}"
+        exit 1
+        ;;
+esac

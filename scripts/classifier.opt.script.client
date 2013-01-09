@@ -1,0 +1,44 @@
+#!/bin/bash
+
+BASEDIR=./
+CONFIGFILE=$BASEDIR/config/classifier.cfg
+LOGFILE=$BASEDIR/logs/classifier.log
+CLIENT_LOG=$LOGFILE.client
+
+TEACHFILE=$1
+DATAFILE=$2
+RESULTFILE=$3
+
+[ -x "$BASEDIR/find-java.sh" ] && . "$BASEDIR/find-java.sh"
+
+CP=""
+
+for j in $BASEDIR/lib/*jar; do
+  CP=$CP:$j
+done
+
+for j in $BASEDIR/lib/batik/*jar; do
+  CP=$CP:$j
+done
+
+
+[ -d logs ] || mkdir logs
+
+if [ -f $CLIENT_LOG ]
+then
+  echo Rotating old log
+  LOG_FILE=$CLIENT_LOG.`date +%Y%m%d-%H%M%S`
+  mv -f $CLIENT_LOG $LOG_FILE
+  nice nice bzip2 -9 $LOG_FILE &
+fi
+
+if [ -f /etc/sysconfig/clock ]; then
+  . /etc/sysconfig/clock
+  export TZ=$TIMEZONE
+  if [ "$TZ" = "" ]; then
+    export TZ=$DEFAULT_TIMEZONE
+  fi
+fi
+
+${JAVA_HOME}/bin/java -classpath "$CP" ru.classifier.client.Client2 $CONFIGFILE $TEACHFILE $DATAFILE $RESULTFILE > $CLIENT_LOG 2>&1 &
+
